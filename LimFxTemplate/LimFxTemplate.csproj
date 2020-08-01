@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="LimFx.Common" Version="1.2.0" />
+    <PackageReference Include="NSwag.AspNetCore" Version="13.6.2" />
   </ItemGroup>
 
 

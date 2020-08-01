@@ -26,6 +26,28 @@ namespace LimFxTemplate
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddSwaggerDocument(config =>
+            {
+                config.PostProcess = document =>
+                {
+                    document.Host = "localhost";
+                    document.Info.Version = "v1";
+                    document.Info.Title = "Template API using LimFx.Common";
+                    document.Info.Description = "ASP.NET Core web API";
+                    document.Info.TermsOfService = "None";
+                    document.Info.Contact = new NSwag.OpenApiContact
+                    {
+                        Name = "çæÑ§¼Ò",
+                        Email = "1769712655@qq.com",
+                        Url = "https://chronos.limfx.pro/"
+                    };
+                    document.Info.License = new NSwag.OpenApiLicense
+                    {
+                        Name = "No lisence, all rights reserved",
+                        Url = string.Empty
+                    };
+                };
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -37,6 +59,9 @@ namespace LimFxTemplate
             }
 
             app.UseHttpsRedirection();
+
+            app.UseOpenApi();
+            app.UseSwaggerUi3();
 
             app.UseRouting();
 
