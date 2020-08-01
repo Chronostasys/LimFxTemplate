@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using LimFx.Business.Exceptions;
+using LimFx.Business.Extensions;
+using LimFx.Business.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -48,6 +53,19 @@ namespace LimFxTemplate
                     };
                 };
             });
+            services.AddAuthentication(op =>
+            {
+                op.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            }).AddCookie(op =>
+                {
+                    op.Events.OnRedirectToLogin += (o) => throw new _403Exception("无法通过身份验证");
+                    op.Events.OnRedirectToAccessDenied += (o) => throw new _403Exception("无法通过身份验证");
+                });
+            services.AddAuthorization(op =>
+            {
+                op.InvokeHandlersAfterFailure = false;
+            });
+            services.AddEnhancedRateLimiter(ClaimTypes.UserData, 1000, 1000);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,13 +75,18 @@ namespace LimFxTemplate
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            app.UseLimFxExceptionHandler();
+            app.UseRateLimiter(maxRequest: 20, blockTime: 10000, maxReq: 200);
             app.UseHttpsRedirection();
 
             app.UseOpenApi();
             app.UseSwaggerUi3();
 
             app.UseRouting();
+
+            app.UseAuthentication();
+
+            app.UseCookiePolicy();
 
             app.UseAuthorization();
 
