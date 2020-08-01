@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using LimFx.Business.Extensions;
 using LimFx.Business.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +32,13 @@ namespace LimFxTemplate
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // 从appsettings.json 中获取mongodb的设置信息
+            var config = Configuration.GetSection(nameof(DatabaseSettings));
+            services.Configure<DatabaseSettings>(config);
+
             services.AddControllers();
+
+            // swagger
             services.AddSwaggerDocument(config =>
             {
                 config.PostProcess = document =>
@@ -65,7 +73,14 @@ namespace LimFxTemplate
             {
                 op.InvokeHandlersAfterFailure = false;
             });
+
+            // 添加路径ratelimit
             services.AddEnhancedRateLimiter(ClaimTypes.UserData, 1000, 1000);
+
+            // cookie持久化
+            services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), ".secret")))
+                .SetDefaultKeyLifetime(new TimeSpan(50, 0, 0, 0));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -75,10 +90,14 @@ namespace LimFxTemplate
             {
                 app.UseDeveloperExceptionPage();
             }
+            // 添加limfx错误处理中间件 https://chronos.limfx.pro/ReadArticle/457/limfxerrorhandler-shi-yong-wen-dang
             app.UseLimFxExceptionHandler();
+            // 添加全局ratelimiter
             app.UseRateLimiter(maxRequest: 20, blockTime: 10000, maxReq: 200);
             app.UseHttpsRedirection();
 
+
+            // 添加swagger ui
             app.UseOpenApi();
             app.UseSwaggerUi3();
 
